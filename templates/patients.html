@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Patients · MediPulse Health{% endblock %}
+{% block crumb %}Patients{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">PATIENT DIRECTORY</div><h1>Patients</h1><p>Manage patient profiles and contact details.</p></div><a class="btn btn-primary" href="{{ url_for('patient_new') }}">＋ Add patient</a></div>
+<section class="panel directory-panel">
+  <div class="directory-toolbar"><div><h2>All patients <span class="count-badge">{{ patients|length }}</span></h2><p>Patient information stored in MediPulseHealth</p></div><form class="search-form" method="get"><span>⌕</span><input name="q" value="{{ search }}" placeholder="Search name, ID or email"><button class="btn btn-light" type="submit">Search</button>{% if search %}<a class="clear-link" href="{{ url_for('patient_list') }}">Clear</a>{% endif %}</form></div>
+  {% if patients %}<div class="table-wrap"><table><thead><tr><th>Patient</th><th>Patient ID</th><th>Gender</th><th>Date of birth</th><th>Blood group</th><th>Contact</th><th>Actions</th></tr></thead><tbody>
+  {% for p in patients %}<tr><td><div class="person-cell"><span class="person-avatar">{{ (p.full_name or '?')[:1]|upper }}</span><div><b>{{ p.full_name }}</b><small>{{ p.email }}</small></div></div></td><td class="id-cell">{{ p.patient_id }}</td><td>{{ p.gender }}</td><td>{{ p.dob }}</td><td><span class="blood-tag">{{ p.blood_group or '—' }}</span></td><td>{{ p.contact }}</td><td><div class="action-group"><a class="icon-btn" title="Edit patient" href="{{ url_for('patient_edit', record_id=p._id|string) }}">✎</a><form method="post" action="{{ url_for('patient_delete', record_id=p._id|string) }}" data-confirm="Delete patient {{ p.full_name }}? Patients with appointments cannot be deleted."><button class="icon-btn danger" title="Delete patient" type="submit">⌫</button></form></div></td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state"><span>♙</span><b>No patients found</b><p>{% if search %}Try another search term.{% else %}Add a patient to start building your directory.{% endif %}</p><a class="btn btn-primary" href="{{ url_for('patient_new') }}">Add patient</a></div>{% endif %}
+</section>
+{% endblock %}

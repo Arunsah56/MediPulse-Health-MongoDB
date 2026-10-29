@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Overview · MediPulse Health{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">HEALTHCARE ANALYTICS</div><h1>Good day, Admin <span class="wave">✦</span></h1><p>Here’s what’s happening across your healthcare workspace.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('appointment_new') }}">＋ New appointment</a>
+</div>
+{% if connection_error %}<div class="notice notice-error">The dashboard could not reach MongoDB Atlas. Check your .env connection string and Atlas network access, then refresh.</div>{% endif %}
+<div class="stats-grid">
+  <article class="stat-card"><div class="stat-top"><span>Total patients</span><span class="stat-icon blue">♙</span></div><div class="stat-number">{{ patient_count }}</div><div class="stat-foot"><span class="dot blue-dot"></span> Registered patient records</div></article>
+  <article class="stat-card"><div class="stat-top"><span>Appointments</span><span class="stat-icon purple">▣</span></div><div class="stat-number">{{ appointment_count }}</div><div class="stat-foot"><span class="dot purple-dot"></span> All recorded appointments</div></article>
+  <article class="stat-card"><div class="stat-top"><span>Completed cases</span><span class="stat-icon green">✓</span></div><div class="stat-number">{{ completed_count }}</div><div class="stat-foot"><span class="dot green-dot"></span> Successfully completed</div></article>
+  <article class="stat-card"><div class="stat-top"><span>Completed revenue</span><span class="stat-icon orange">₹</span></div><div class="stat-number">{{ total_revenue|money }}</div><div class="stat-foot"><span class="dot orange-dot"></span> From completed appointments</div></article>
+</div>
+<div class="content-grid">
+  <section class="panel revenue-panel">
+    <div class="panel-heading"><div><h2>Department performance</h2><p>Revenue from completed appointments</p></div><span class="tag">LIVE DATA</span></div>
+    {% if revenue_rows %}
+    <div class="chart-wrap"><canvas id="revenueChart" aria-label="Revenue by department" role="img"></canvas></div>
+    <div class="table-wrap"><table><thead><tr><th>Department</th><th>Completed cases</th><th>Avg. consultation</th><th>Revenue</th></tr></thead><tbody>
+    {% for row in revenue_rows %}<tr><td><span class="dept-dot"></span>{{ row._id or 'Other' }}</td><td>{{ row.completed_cases }}</td><td>{{ row.avg_consultation_fee|money }}</td><td class="money">{{ row.total_revenue|money }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    {% else %}<div class="empty-state"><span>⌁</span><b>No completed appointments yet</b><p>Complete an appointment to see department revenue analytics.</p></div>{% endif %}
+  </section>
+  <section class="panel medicine-panel">
+    <div class="panel-heading"><div><h2>Top prescribed medicines</h2><p>Prescription frequency and dosage</p></div><span class="panel-symbol">✚</span></div>
+    {% if medicine_rows %}
+      <div class="medicine-list">{% for item in medicine_rows %}<div class="medicine-row"><div class="medicine-icon">{{ loop.index }}</div><div class="medicine-info"><b>{{ item._id or 'Unnamed medicine' }}</b><small>Average dosage {{ '%.1f'|format(item.avg_dosage_mg or 0) }} mg</small></div><div class="medicine-count"><b>{{ item.times_prescribed }}</b><small>times</small></div></div>{% endfor %}</div>
+    {% else %}<div class="empty-state"><span>✚</span><b>No prescription data yet</b><p>Prescriptions will appear here after appointments are added.</p></div>{% endif %}
+  </section>
+</div>
+<section class="panel recent-panel">
+  <div class="panel-heading"><div><h2>Recent appointments</h2><p>A quick look at the latest records in your database</p></div><a class="text-link" href="{{ url_for('appointment_list') }}">View all appointments →</a></div>
+  {% if recent_appointments %}<div class="table-wrap"><table><thead><tr><th>Appointment ID</th><th>Patient</th><th>Department</th><th>Date</th><th>Status</th><th>Total bill</th></tr></thead><tbody>
+  {% for a in recent_appointments %}<tr><td class="id-cell">{{ a.appointment_id }}</td><td>{{ a.patient_name }}</td><td>{{ a.department }}</td><td>{{ a.date|date_display }}</td><td><span class="status status-{{ (a.status or 'scheduled')|lower }}">{{ a.status or 'Unknown' }}</span></td><td class="money">{{ (a.billing or {}).get('total_amount', 0)|money }}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state"><span>▣</span><b>No appointments found</b><p>Create your first appointment to get started.</p><a class="btn btn-primary" href="{{ url_for('appointment_new') }}">Add appointment</a></div>{% endif %}
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const labels = {{ chart_labels|tojson }};
+const values = {{ chart_values|tojson }};
+if (labels.length && document.getElementById('revenueChart') && window.Chart) {
+  new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Revenue (₹)', data: values, backgroundColor: ['#4f7df3','#6f8ff5','#8ba4fa','#7a72e8','#a3b5ff'], borderRadius: 7, maxBarThickness: 46 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ₹' + Number(c.raw).toLocaleString('en-IN') } } }, scales: { x: { grid: { display: false }, border: { display: false }, ticks: { color: '#73809a' } }, y: { beginAtZero: true, grid: { color: '#edf0f6' }, border: { display: false }, ticks: { color: '#73809a', callback: v => '₹' + Number(v).toLocaleString('en-IN') } } } }
+  });
+}
+</script>
+{% endblock %}

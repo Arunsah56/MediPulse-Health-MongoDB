@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if appointment else 'New' }} appointment · MediPulse Health{% endblock %}
+{% block crumb %}Appointments / {{ 'Edit appointment' if appointment else 'New appointment' }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">CARE COORDINATION</div><h1>{{ 'Edit appointment' if appointment else 'New appointment' }}</h1><p>Manage visit details, billing and prescriptions.</p></div><a class="btn btn-light" href="{{ url_for('appointment_list') }}">← Back to appointments</a></div>
+<form method="post" class="panel form-panel">
+  <div class="form-section-title"><span class="section-number">01</span><div><h2>Appointment details</h2><p>Connect this visit to an existing patient record.</p></div></div>
+  <div class="form-grid">
+    <label>Appointment ID <span class="optional">Optional for new records</span><input name="appointment_id" value="{{ appointment.appointment_id if appointment else '' }}" placeholder="Auto-generated, e.g. APT-20001"></label>
+    <label>Patient *<select name="patient_id" required><option value="">Select patient</option>{% for p in patients %}<option value="{{ p.patient_id }}" {{ 'selected' if appointment and appointment.patient_id == p.patient_id else '' }}>{{ p.full_name }} ({{ p.patient_id }})</option>{% endfor %}</select></label>
+    <label>Doctor ID *<input name="doctor_id" required value="{{ appointment.doctor_id if appointment else '' }}" placeholder="e.g. DOC-501"></label>
+    <label>Department *<select name="department" required><option value="">Select department</option>{% for d in departments %}<option value="{{ d }}" {{ 'selected' if appointment and appointment.department == d else '' }}>{{ d }}</option>{% endfor %}</select></label>
+    <label>Appointment date *<input type="date" name="date" required value="{{ appointment.date if appointment else '' }}"></label>
+    <label>Status *<select name="status" required>{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if appointment and appointment.status == s else '' }}>{{ s }}</option>{% endfor %}</select></label>
+  </div>
+  <div class="form-section-title form-section-spaced"><span class="section-number">02</span><div><h2>Billing information</h2><p>Total bill is calculated automatically from the two fees.</p></div></div>
+  <div class="form-grid">
+    <label>Consultation fee (₹) *<input type="number" min="0" step="0.01" name="consultation_fee" required value="{{ (appointment.billing or {}).get('consultation_fee', '') if appointment else '' }}" placeholder="800"></label>
+    <label>Medication fee (₹) *<input type="number" min="0" step="0.01" name="medication_fee" required value="{{ (appointment.billing or {}).get('medication_fee', '') if appointment else '' }}" placeholder="300"></label>
+    <label>Payment status *<select name="payment_status" required>{% for s in payment_statuses %}<option value="{{ s }}" {{ 'selected' if appointment and (appointment.billing or {}).get('payment_status') == s else '' }}>{{ s }}</option>{% endfor %}</select></label>
+    <div class="total-preview"><small>CALCULATED TOTAL</small><strong id="totalPreview">₹0</strong></div>
+  </div>
+  <div class="form-section-title form-section-spaced"><span class="section-number">03</span><div><h2>Prescriptions</h2><p>Add medicine, dosage in mg and treatment duration in days.</p></div></div>
+  <div id="prescriptionRows" class="prescription-rows">
+    {% set rx = appointment.prescriptions if appointment and appointment.prescriptions else [{}] %}
+    {% for item in rx %}
+    <div class="prescription-row">
+      <label>Medicine name<input name="medicine_name[]" value="{{ item.medicine_name or '' }}" placeholder="e.g. Aspirin"></label>
+      <label>Dosage (mg)<input type="number" min="1" step="1" name="dosage_mg[]" value="{{ item.dosage_mg or '' }}" placeholder="75"></label>
+      <label>Duration (days)<input type="number" min="1" step="1" name="duration_days[]" value="{{ item.duration_days or '' }}" placeholder="15"></label>
+      <button class="icon-btn danger remove-rx" type="button" title="Remove prescription row">×</button>
+    </div>
+    {% endfor %}
+  </div>
+  <button class="btn btn-light add-rx" type="button" id="addPrescription">＋ Add medicine</button>
+  <div class="form-actions"><a class="btn btn-light" href="{{ url_for('appointment_list') }}">Cancel</a><button class="btn btn-primary" type="submit">{{ 'Save changes' if appointment else 'Create appointment' }}</button></div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  const consult = document.querySelector('[name="consultation_fee"]');
+  const meds = document.querySelector('[name="medication_fee"]');
+  const preview = document.getElementById('totalPreview');
+  function updateTotal(){ const sum = (parseFloat(consult.value)||0) + (parseFloat(meds.value)||0); preview.textContent = '₹' + sum.toLocaleString('en-IN', {maximumFractionDigits:2}); }
+  consult.addEventListener('input', updateTotal); meds.addEventListener('input', updateTotal); updateTotal();
+  const rows = document.getElementById('prescriptionRows');
+  document.getElementById('addPrescription').addEventListener('click', () => {
+    const row = document.createElement('div'); row.className = 'prescription-row';
+    row.innerHTML = '<label>Medicine name<input name="medicine_name[]" placeholder="Medicine name"></label><label>Dosage (mg)<input type="number" min="1" step="1" name="dosage_mg[]" placeholder="75"></label><label>Duration (days)<input type="number" min="1" step="1" name="duration_days[]" placeholder="15"></label><button class="icon-btn danger remove-rx" type="button" title="Remove prescription row">×</button>';
+    rows.appendChild(row);
+  });
+  rows.addEventListener('click', e => { if(e.target.closest('.remove-rx')) { const all=rows.querySelectorAll('.prescription-row'); if(all.length>1) e.target.closest('.prescription-row').remove(); else e.target.closest('.prescription-row').querySelectorAll('input').forEach(i=>i.value=''); } });
+})();
+</script>
+{% endblock %}

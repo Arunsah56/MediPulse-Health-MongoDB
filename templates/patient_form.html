@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if patient else 'Add' }} patient · MediPulse Health{% endblock %}
+{% block crumb %}Patients / {{ 'Edit patient' if patient else 'Add patient' }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">PATIENT DIRECTORY</div><h1>{{ 'Edit patient' if patient else 'Add a patient' }}</h1><p>{{ 'Update the selected patient profile.' if patient else 'Create a patient profile in the Atlas database.' }}</p></div><a class="btn btn-light" href="{{ url_for('patient_list') }}">← Back to patients</a></div>
+<form method="post" class="panel form-panel">
+  <div class="form-section-title"><span class="section-number">01</span><div><h2>Basic information</h2><p>Fields marked with * are required.</p></div></div>
+  <div class="form-grid">
+    <label>Patient ID <span class="optional">Optional for new records</span><input name="patient_id" value="{{ patient.patient_id if patient else '' }}" placeholder="Auto-generated, e.g. PAT-10001"></label>
+    <label>Full name *<input name="full_name" required minlength="3" value="{{ patient.full_name if patient else '' }}" placeholder="Enter full name"></label>
+    <label>Email address *<input type="email" name="email" required value="{{ patient.email if patient else '' }}" placeholder="name@example.com"></label>
+    <label>Contact number *<input name="contact" required value="{{ patient.contact if patient else '' }}" placeholder="+91-9876543210"></label>
+    <label>Gender *<select name="gender" required><option value="">Select gender</option>{% for g in genders %}<option value="{{ g }}" {{ 'selected' if patient and patient.gender == g else '' }}>{{ g }}</option>{% endfor %}</select></label>
+    <label>Date of birth *<input type="date" name="dob" required value="{{ patient.dob if patient else '' }}"></label>
+    <label>Blood group<select name="blood_group"><option value="">Select blood group</option>{% for b in blood_groups %}<option value="{{ b }}" {{ 'selected' if patient and patient.blood_group == b else '' }}>{{ b }}</option>{% endfor %}</select></label>
+    <label class="full-field">Known allergies <span class="optional">Separate multiple allergies with commas</span><input name="allergies" value="{{ (patient.allergies or [])|join(', ') if patient else '' }}" placeholder="e.g. Penicillin, Dust"></label>
+  </div>
+  <div class="form-actions"><a class="btn btn-light" href="{{ url_for('patient_list') }}">Cancel</a><button class="btn btn-primary" type="submit">{{ 'Save changes' if patient else 'Create patient' }}</button></div>
+</form>
+{% endblock %}
